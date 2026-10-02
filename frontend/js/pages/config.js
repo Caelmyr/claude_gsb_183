@@ -16,6 +16,9 @@ const CLUSTER_FIELDS = [
   { key: 'reduce_parallelism_factor', label: 'Reduce 并行因子 Reduce parallelism', type: 'number', step: 0.5, min: 0.5 },
   { key: 'scheduler_tick_sec', label: '调度周期 Scheduler tick (s)', type: 'number', step: 0.05, min: 0.05 },
   { key: 'metric_interval_sec', label: '指标采样周期 Metric interval (s)', type: 'number', step: 0.5, min: 0.5 },
+  { key: 'health_window_sec', label: '健康指标窗口 Health window (s)', type: 'number', step: 5, min: 10 },
+  { key: 'health_task_window_sec', label: '任务失败率窗口 Task-failure window (s)', type: 'number', step: 10, min: 10 },
+  { key: 'health_smoothing_sec', label: '评分平滑时间常数 Health EWMA (s)', type: 'number', step: 5, min: 1 },
   { key: 'demo_mode', label: '演示模式 Demo mode', type: 'checkbox' },
   { key: 'default_input_rows', label: '默认输入行数 Default input rows', type: 'number', step: 100, min: 10 },
 ];

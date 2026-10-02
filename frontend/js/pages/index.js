@@ -7,6 +7,8 @@ async function load() {
   try { ov = await API.get('/api/overview'); } catch (e) { return; }
   const w = ov.workers;
 
+  Health.renderCard('health-card', ov.health);
+
   document.getElementById('stats').innerHTML = [
     { label: '作业总数 Jobs', value: ov.jobs_total },
     { label: '运行中 Active', value: ov.jobs_active, cls: ov.jobs_active ? 'good' : '' },

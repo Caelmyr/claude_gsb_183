@@ -367,6 +367,8 @@ fieldset legend { font-size: 13px; font-weight: 600; color: var(--ink-2); paddin
 .muted { color: var(--muted); }
 .small { font-size: 12px; }
 .bold { font-weight: 650; }
+.good { color: var(--good); }
+.bad { color: var(--critical); }
 .empty {
   text-align: center;
   color: var(--muted);
@@ -412,3 +414,38 @@ fieldset legend { font-size: 13px; font-weight: 600; color: var(--ink-2); paddin
 details.accordion { border: 1px solid var(--border); border-radius: var(--radius-sm); margin-bottom: 8px; }
 details.accordion summary { cursor: pointer; padding: 10px 14px; font-weight: 600; }
 details.accordion .body { padding: 4px 14px 14px; }
+
+/* ---------------------------------------------------------------------------
+   Cluster health score
+--------------------------------------------------------------------------- */
+.health-grid { display: grid; grid-template-columns: 230px 1fr; gap: 20px; align-items: start; }
+@media (max-width: 820px) { .health-grid { grid-template-columns: 1fr; } }
+.health-gauge { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.health-gauge svg { display: block; }
+.health-gauge .gauge-track { stroke: var(--surface-2); }
+.health-grade {
+  padding: 3px 12px; border-radius: 999px; font-size: 12.5px; font-weight: 650;
+  background: var(--surface-2); color: var(--muted);
+}
+.health-grade.good { background: color-mix(in srgb, var(--good) 15%, transparent); color: var(--good); }
+.health-grade.warn { background: color-mix(in srgb, var(--serious) 16%, transparent); color: var(--serious); }
+.health-grade.bad  { background: color-mix(in srgb, var(--critical) 16%, transparent); color: var(--critical); }
+.health-dims { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 22px; }
+@media (max-width: 560px) { .health-dims { grid-template-columns: 1fr; } }
+.health-dim .dim-head { display: flex; justify-content: space-between; font-size: 12.5px; margin-bottom: 4px; }
+.health-dim .dim-head .dim-name { color: var(--ink); font-weight: 600; }
+.health-dim .dim-head .dim-meta { color: var(--muted); }
+.health-dim .dim-detail { font-size: 11.5px; color: var(--muted); margin-top: 3px; min-height: 15px; }
+.health-spark { margin-top: 2px; }
+.health-meta { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--ink-2); margin-top: 10px; }
+.health-meta b { color: var(--ink); font-weight: 650; }
+.health-nodes-wrap { margin-top: 14px; }
+.health-mini { display: flex; align-items: center; gap: 8px; }
+.health-mini .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); display: inline-block; }
+.health-mini .dot.good { background: var(--good); }
+.health-mini .dot.warn { background: var(--serious); }
+.health-mini .dot.bad  { background: var(--critical); }
+.health-mini .num { font-size: 16px; font-weight: 650; }
+.health-mini .num.good { color: var(--good); }
+.health-mini .num.warn { color: var(--serious); }
+.health-mini .num.bad  { color: var(--critical); }

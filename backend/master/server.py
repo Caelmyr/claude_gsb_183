@@ -22,6 +22,7 @@ from backend.common.logbus import LogBus
 from backend.common.models import Job
 from backend.common.storage import Storage, list_files, read_json
 from backend.master.fault_tolerance import FaultTolerance
+from backend.master.health import HealthEvaluator
 from backend.master.job_manager import JobManager
 from backend.master.metrics import Metrics
 from backend.master.registry import WorkerRegistry
@@ -48,12 +49,14 @@ class Master:
         self.job_manager = JobManager(self.storage, self.config, self.logbus)
         self.registry = WorkerRegistry(self.storage, self.config)
         self.metrics = Metrics(self.storage)
+        self.health = HealthEvaluator(self.storage, self.registry, self.config)
         self.shuffle = ShuffleCoordinator(self.storage, self.job_manager, self.registry, self.logbus)
         self.fault_tolerance = FaultTolerance(self.storage, self.job_manager, self.config, self.logbus)
         self.registry.on_death = self.fault_tolerance.handle_worker_death
         self.scheduler = Scheduler(
             self.storage, self.job_manager, self.registry, self.shuffle,
             self.fault_tolerance, self.metrics, self.config, self.logbus,
+            health=self.health,
         )
 
         self.app = Flask("master", static_folder=FRONTEND_DIR, static_url_path="")
@@ -92,6 +95,7 @@ class Master:
         app.add_url_rule("/api/workers", "workers", self._workers, methods=["GET"])
         app.add_url_rule("/api/workers/<worker_id>/metrics", "worker_metrics", self._worker_metrics, methods=["GET"])
         app.add_url_rule("/api/cluster/metrics", "cluster_metrics", self._cluster_metrics, methods=["GET"])
+        app.add_url_rule("/api/cluster/health", "cluster_health", self._cluster_health, methods=["GET"])
         app.add_url_rule("/api/config", "config", self._config, methods=["GET", "PUT"])
         app.add_url_rule("/api/config/defaults", "config_defaults", self._config_defaults, methods=["GET", "PUT"])
 
@@ -162,6 +166,7 @@ class Master:
             "jobs_failed": sum(1 for j in jobs if j.status == C.JOB_FAILED),
             "jobs_cancelled": sum(1 for j in jobs if j.status == C.JOB_CANCELLED),
             "workers": self.registry.summary(),
+            "health": self.health.snapshot(),
             "config": self.config.to_dict(),
             "recent_jobs": [self.job_manager.job_summary(j) for j in jobs[:10]],
         })
@@ -316,6 +321,9 @@ class Master:
 
     def _cluster_metrics(self):
         return jsonify(self.metrics.cluster_metrics(self.registry.all()))
+
+    def _cluster_health(self):
+        return jsonify(self.health.snapshot())
 
     def _config(self):
         if request.method == "PUT":

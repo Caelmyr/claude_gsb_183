@@ -28,6 +28,7 @@ from backend.common.logbus import LogBus
 from backend.common.models import Job, Task, WorkerRecord
 from backend.common.storage import Storage
 from backend.master.fault_tolerance import FaultTolerance
+from backend.master.health import HealthEvaluator
 from backend.master.job_manager import JobManager
 from backend.master.metrics import Metrics
 from backend.master.registry import WorkerRegistry
@@ -48,6 +49,7 @@ class Scheduler:
         metrics: Metrics,
         config,
         logbus: LogBus,
+        health: Optional[HealthEvaluator] = None,
     ) -> None:
         self.storage = storage
         self.job_manager = job_manager
@@ -57,6 +59,7 @@ class Scheduler:
         self.metrics = metrics
         self.config = config
         self.logbus = logbus
+        self.health = health
         self.client = HttpClient(timeout=3.0, retries=1)
         self._stop = threading.Event()
         self._thread = threading.Thread(target=self._loop, daemon=True, name="scheduler")
@@ -94,6 +97,15 @@ class Scheduler:
             try:
                 self._advance(job)
             except Exception:  # noqa: BLE001
+                traceback.print_exc()
+
+        # 3. Recompute the cluster health score on the same cadence as metric
+        #    samples so the EWMA advances with wall time even when nobody is
+        #    watching the UI.
+        if self.health is not None:
+            try:
+                self.health.evaluate()
+            except Exception:  # noqa: BLE001 - scoring must never break the loop
                 traceback.print_exc()
 
     # ------------------------------------------------------------------

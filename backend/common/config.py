@@ -56,6 +56,9 @@ class ClusterConfig:
     reduce_parallelism_factor: float = 2.0
     scheduler_tick_sec: float = 5.0              # master scheduling loop cadence
     metric_interval_sec: float = 2.0             # metric sample cadence
+    health_window_sec: float = 90.0              # rolling window for load/heartbeat scoring
+    health_task_window_sec: float = 300.0        # rolling window for task failure rate
+    health_smoothing_sec: float = 45.0           # EWMA time constant of the health score
     demo_mode: bool = False                      # simulate work for fast UI demos
     default_input_rows: int = 12000              # generated input size for sample jobs
     seed: int = 20260930
@@ -84,6 +87,9 @@ class ClusterConfig:
             reduce_parallelism_factor=_num(self.reduce_parallelism_factor, 2.0, 0.5, 50.0),
             scheduler_tick_sec=_num(self.scheduler_tick_sec, 0.5, 0.05, 10.0),
             metric_interval_sec=_num(self.metric_interval_sec, 2.0, 0.5, 60.0),
+            health_window_sec=_num(self.health_window_sec, 90.0, 10.0, 3600.0),
+            health_task_window_sec=_num(self.health_task_window_sec, 300.0, 10.0, 86400.0),
+            health_smoothing_sec=_num(self.health_smoothing_sec, 45.0, 1.0, 1800.0),
             demo_mode=_bool(self.demo_mode, False),
             default_input_rows=_int(self.default_input_rows, 12000, 10, 10_000_000),
             seed=_int(self.seed, 20260930, 0, 2 ** 31 - 1),

@@ -83,7 +83,7 @@ class WorkerRegistry:
             worker.last_heartbeat_ms = now_ms()
             worker.cpu_percent = float(payload.get("cpu_percent", worker.cpu_percent))
             worker.mem_percent = float(payload.get("mem_percent", worker.mem_percent))
-            worker.load1 = float(payload.get("cpu_percent", worker.load1))
+            worker.load1 = float(payload.get("load1", worker.load1))
             worker.running_tasks = int(payload.get("running_tasks", worker.running_tasks))
             worker.queued_tasks = int(payload.get("queued_tasks", worker.queued_tasks))
             self._save(worker)

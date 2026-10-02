@@ -12,7 +12,10 @@ async function load() {
     { label: '存活 Alive', value: d.alive, cls: 'good' },
     { label: '失联 Dead', value: d.dead, cls: d.dead ? 'bad' : '' },
     { label: '累计完成任务 Completed', value: workers.reduce((s, w) => s + (w.total_tasks_completed || 0), 0) },
-  ].map(s => `<div class="stat"><div class="label">${s.label}</div><div class="value ${s.cls || ''}">${C.fmtNum(s.value)}</div></div>`).join('');
+  ].map(s => `<div class="stat"><div class="label">${s.label}</div><div class="value ${s.cls || ''}">${C.fmtNum(s.value)}</div></div>`).join('')
+    + '<div id="health-mini"></div>';
+
+  API.get('/api/cluster/health').then(h => Health.renderMini('health-mini', h)).catch(() => {});
 
   document.getElementById('workers').innerHTML = workers.length ? C.table([
     { key: 'name', label: '节点 Worker', render: r => `<b>${C.esc(r.name)}</b><div class="small muted mono">${C.esc(r.worker_id)}</div>` },
