@@ -46,6 +46,7 @@ class Scheduler:
         shuffle: ShuffleCoordinator,
         fault_tolerance: FaultTolerance,
         metrics: Metrics,
+        health,
         config,
         logbus: LogBus,
     ) -> None:
@@ -55,6 +56,7 @@ class Scheduler:
         self.shuffle = shuffle
         self.fault_tolerance = fault_tolerance
         self.metrics = metrics
+        self.health = health
         self.config = config
         self.logbus = logbus
         self.client = HttpClient(timeout=3.0, retries=1)
@@ -265,6 +267,7 @@ class Scheduler:
 
         if status != C.TASK_SUCCEEDED:
             self.registry.task_finished(worker_id, success=False)
+            self.health.record_task_outcome(worker_id, success=False)
             self.fault_tolerance.handle_task_failure(job, task, payload.get("error", ""), worker_id)
             return
 
@@ -285,6 +288,7 @@ class Scheduler:
 
         self.job_manager.apply_task(job.job_id, task.task_id, apply)
         self.registry.task_finished(worker_id, success=True)
+        self.health.record_task_outcome(worker_id, success=True)
         self.metrics.record_task(job, task, int(payload.get("duration_ms", 0)))
 
         if task.kind == C.TASK_REDUCE:

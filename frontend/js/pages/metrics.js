@@ -6,6 +6,13 @@ const Charts = window.Charts;
 let currentJob = '';
 let workers = [];
 
+async function loadHealth() {
+  let h;
+  try { h = await API.get('/api/cluster/health'); } catch (e) { return; }
+  document.getElementById('health-panel').innerHTML = C.healthPanel(h, true);
+  document.getElementById('health-nodes').innerHTML = C.healthNodeTable(h.nodes);
+}
+
 async function loadJobMetrics() {
   if (!currentJob) return;
   let m;
@@ -69,4 +76,5 @@ window.addEventListener('themechange', () => { loadJobMetrics(); loadCluster(); 
 
 C.jobPicker('job-picker', (id) => { currentJob = id; loadJobMetrics(); });
 loadCluster();
-C.poll(() => { loadJobMetrics(); loadCluster(); }, 3000).start();
+loadHealth();
+C.poll(() => { loadJobMetrics(); loadCluster(); loadHealth(); }, 3000).start();

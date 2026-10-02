@@ -412,3 +412,44 @@ fieldset legend { font-size: 13px; font-weight: 600; color: var(--ink-2); paddin
 details.accordion { border: 1px solid var(--border); border-radius: var(--radius-sm); margin-bottom: 8px; }
 details.accordion summary { cursor: pointer; padding: 10px 14px; font-weight: 600; }
 details.accordion .body { padding: 4px 14px 14px; }
+
+/* ------------------------------------------------------------------ */
+/* Cluster health panel                                                */
+/* ------------------------------------------------------------------ */
+.health-panel { display: flex; flex-direction: column; gap: 10px; }
+.health-head { display: flex; gap: 24px; align-items: center; flex-wrap: wrap; }
+.health-gauge { position: relative; width: 116px; height: 116px; flex: 0 0 auto; }
+.health-gauge svg { transform: rotate(-90deg); display: block; }
+.gauge-track { fill: none; stroke: var(--surface-2); stroke-width: 10; }
+.gauge-fill {
+  fill: none; stroke-width: 10; stroke-linecap: round;
+  transition: stroke-dasharray 0.6s ease, stroke 0.3s ease;
+}
+.gauge-fill.good { stroke: var(--good); }
+.gauge-fill.warn { stroke: var(--warning); }
+.gauge-fill.bad { stroke: var(--critical); }
+.gauge-fill.muted { stroke: var(--baseline); }
+.gauge-center {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 2px;
+}
+.gauge-value { font-size: 30px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+.gauge-label { font-size: 11px; color: var(--muted); text-align: center; }
+.health-gauge.good .gauge-value { color: var(--good); }
+.health-gauge.warn .gauge-value { color: var(--warning); }
+.health-gauge.bad .gauge-value { color: var(--critical); }
+
+.health-dims {
+  flex: 1 1 460px; display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 12px 20px;
+}
+.health-dim { display: flex; flex-direction: column; gap: 3px; }
+.meter > .fill.good { background: var(--good); }
+.meter > .fill.bad { background: var(--critical); }
+.meter > .fill.na {
+  background: repeating-linear-gradient(45deg, var(--baseline), var(--baseline) 6px,
+    var(--surface-2) 6px, var(--surface-2) 12px);
+}
+.health-foot { gap: 12px; align-items: flex-end; }
+.health-warn { display: flex; flex-direction: column; gap: 2px; color: var(--serious); }

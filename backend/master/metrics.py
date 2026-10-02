@@ -70,7 +70,7 @@ class Metrics:
             "total_records_processed": total_records,
             "total_records_emitted": total_emitted,
             "avg_throughput_rps": _mean(rates),
-            "peak_throughput_rps": round(min(rates), 2) if rates else 0.0,
+            "peak_throughput_rps": round(max(rates), 2) if rates else 0.0,
             "avg_latency_ms": _mean(latencies),
             "samples": samples[-300:],
         }

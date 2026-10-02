@@ -60,7 +60,7 @@ class WorkerServer:
         )
         self.heartbeat = HeartbeatThread(
             self.worker_id, self.master_url,
-            self.config.heartbeat_timeout_sec, self._status_payload,
+            self.config.heartbeat_interval_sec, self._status_payload,
         )
         self.client = HttpClient(timeout=5.0, retries=1)
         self.registered = False
@@ -76,7 +76,7 @@ class WorkerServer:
         return {
             "cpu_percent": res["cpu_percent"],
             "mem_percent": res["mem_percent"],
-            "load1": round(res["load1"] * 10.0, 2),
+            "load1": round(res["load1"], 2),
             "cpu_cores": res["cpu_cores"],
             "mem_total_mb": res["mem_total_mb"],
             "running_tasks": self.executor.running_count,

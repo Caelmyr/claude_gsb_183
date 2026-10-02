@@ -75,8 +75,8 @@ class ResourceSampler:
                     cpu = db / dt * 100.0
             self._last = (total, busy)
         return {
-            "cpu_percent": round(self._mem_percent(), 1),
-            "mem_percent": round(cpu, 1),
+            "cpu_percent": round(cpu, 1),
+            "mem_percent": round(self._mem_percent(), 1),
             "load1": round(self._load1(), 2),
             "cpu_cores": self.cpu_cores(),
             "mem_total_mb": self.mem_total_mb(),

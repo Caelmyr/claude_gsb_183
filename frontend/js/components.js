@@ -88,6 +88,155 @@ const Components = (() => {
     return `<div class="empty">${esc(msg || '暂无数据 No data')}</div>`;
   }
 
+  // ------------------------------------------------------------------
+  // Cluster health panel
+  // ------------------------------------------------------------------
+  const HEALTH_GRADE = {
+    good: { cls: 'good', label: '健康 Healthy' },
+    warn: { cls: 'warn', label: '注意 Degraded' },
+    critical: { cls: 'bad', label: '异常 Critical' },
+    no_data: { cls: 'muted', label: '数据不足 No data' },
+    unknown: { cls: 'muted', label: '等待节点 Waiting' },
+  };
+  const HEALTH_DIM_SHORT = {
+    availability: '可用 Availability',
+    heartbeat: '心跳 Heartbeat',
+    load: '负载 Load',
+    reliability: '可靠 Reliability',
+  };
+
+  function healthGrade(grade) {
+    return HEALTH_GRADE[grade] || HEALTH_GRADE.unknown;
+  }
+
+  // Gauge ring rendered as an SVG arc; value null -> greyed "no data".
+  function healthGauge(score, grade) {
+    const g = healthGrade(grade);
+    const val = (score == null || isNaN(score)) ? null : Math.max(0, Math.min(100, Number(score)));
+    const r = 52, c = 2 * Math.PI * r;
+    const pct = val == null ? 0 : val / 100;
+    const colorCls = val == null ? 'muted' : g.cls;
+    return `<div class="health-gauge ${colorCls}">
+      <svg viewBox="0 0 120 120" width="116" height="116">
+        <circle class="gauge-track" cx="60" cy="60" r="${r}"></circle>
+        <circle class="gauge-fill ${colorCls}" cx="60" cy="60" r="${r}"
+          stroke-dasharray="${(c * pct).toFixed(1)} ${(c * (1 - pct)).toFixed(1)}"></circle>
+      </svg>
+      <div class="gauge-center">
+        <div class="gauge-value">${val == null ? '—' : val.toFixed(0)}</div>
+        <div class="gauge-label">${esc(g.label)}</div>
+      </div>
+    </div>`;
+  }
+
+  function _healthWarnings(h) {
+    const cov = h.coverage || {};
+    const warnings = [];
+    if (cov.nodes_dead > 0) {
+      warnings.push(`${cov.nodes_dead} 个节点失联 ${cov.nodes_dead} node(s) dead`);
+    }
+    if (cov.nodes_alive > 0 && cov.load_reporting < cov.nodes_alive) {
+      warnings.push(`${cov.nodes_alive - cov.load_reporting} 个节点缺少负载数据 ${cov.nodes_alive - cov.load_reporting} node(s) missing load data`);
+    }
+    if (cov.reliability_source === 'none') {
+      warnings.push('近期无任务结果，可靠性按满分计 No task outcomes yet');
+    } else if (cov.reliability_source === 'cumulative') {
+      warnings.push('近期任务样本不足，采用累计计数 Window sparse, using cumulative counters');
+    }
+    return warnings;
+  }
+
+  // Compact panel: gauge + per-dimension bars. `detailed` adds raw values.
+  function healthPanel(h, detailed) {
+    if (!h) return empty('健康数据暂不可用 Health unavailable');
+    const g = healthGrade(h.grade);
+    const dims = h.dimensions || {};
+    const order = ['availability', 'heartbeat', 'load', 'reliability'];
+    const dimRows = order.map(k => {
+      const d = dims[k];
+      if (!d) return '';
+      const raw = d.raw || {};
+      const score = d.score;
+      const noData = score == null || d.status === 'no_data';
+      const cls = noData ? 'muted' : (score >= 85 ? 'good' : score >= 60 ? 'warn' : 'bad');
+      let detail = '';
+      if (k === 'availability') {
+        detail = `${raw.alive != null ? raw.alive : '-'}/${raw.total != null ? raw.total : '-'} 存活 alive`;
+      } else if (k === 'heartbeat') {
+        detail = noData ? '无心跳数据' : `年龄 age ${raw.age_ratio != null ? (raw.age_ratio * 100).toFixed(0) + '% 超时阈值' : '-'}`;
+      } else if (k === 'load') {
+        detail = noData ? '无负载数据' : `饱和度 saturation ${raw.min != null ? 'min ' + raw.min : ''}`;
+      } else if (k === 'reliability') {
+        detail = noData ? '无任务数据' : `失败率 fail ${(raw.failure_rate != null ? (raw.failure_rate * 100).toFixed(1) : '-')}% (${raw.source === 'window' ? '近' + Math.round((raw.window_sec || 600) / 60) + '分钟' : '累计'})`;
+      }
+      const pct = noData ? 0 : Math.max(0, Math.min(100, Number(score) || 0));
+      return `<div class="health-dim">
+        <div class="flex between small">
+          <span>${esc(HEALTH_DIM_SHORT[k] || k)}<span class="muted"> · 权重 ${Math.round((d.weight || 0) * 100)}%</span></span>
+          <span class="tabular bold ${cls}">${noData ? '无数据 N/A' : score.toFixed(1)}</span>
+        </div>
+        <div class="meter"><div class="fill ${noData ? 'na' : cls}" style="width:${pct}%"></div></div>
+        <div class="small muted">${esc(detail)}</div>
+      </div>`;
+    }).join('');
+
+    const warnings = _healthWarnings(h);
+    const updated = h.ts_ms ? `<span class="small muted">更新 ${fmtTime(h.ts_ms)}</span>` : '';
+    const penalty = h.short_board_penalty > 0.1
+      ? `<div class="small muted">短板节点扣分 short-board −${h.short_board_penalty.toFixed(1)}</div>` : '';
+    const warnHtml = warnings.length
+      ? `<div class="health-warn">${warnings.map(x => `<div>⚠ ${esc(x)}</div>`).join('')}</div>` : '';
+
+    return `<div class="health-panel">
+      <div class="health-head">
+        ${healthGauge(h.score, h.grade)}
+        <div class="health-dims">${dimRows}</div>
+      </div>
+      <div class="flex between health-foot">
+        <div>${penalty}${warnHtml}</div>
+        <div>${updated}</div>
+      </div>
+    </div>`;
+  }
+
+  // Full per-node health table for the metrics page.
+  function healthNodeTable(nodes) {
+    const rows = nodes || [];
+    if (!rows.length) return empty('暂无节点 No workers registered');
+    return table([
+      { key: 'name', label: '节点 Worker', render: r => `<b>${esc(r.name)}</b>` },
+      { key: 'status', label: '状态', render: r => stateBadge(r.status, true) },
+      { key: 'score', label: '健康分 Score', num: true,
+        render: r => {
+          if (r.score == null) return '<span class="muted">N/A</span>';
+          const cls = r.score >= 85 ? 'good' : r.score >= 60 ? 'warn' : 'bad';
+          return `<span class="bold ${cls}">${r.score.toFixed(1)}</span>`;
+        } },
+      { key: 'avail', label: '可用', num: true,
+        render: r => fmtDim(r.dims, 'availability') },
+      { key: 'hb', label: '心跳', num: true,
+        render: r => fmtDim(r.dims, 'heartbeat', r.raw_heartbeat, 'age_ratio') },
+      { key: 'load', label: '负载 (C/M/L)', num: true,
+        render: r => r.raw_load
+          ? `${r.raw_load.cpu_percent.toFixed(0)}% / ${r.raw_load.mem_percent.toFixed(0)}% / ${r.raw_load.load1.toFixed(2)}`
+          : '<span class="muted">N/A</span>' },
+      { key: 'rel', label: '失败 (窗/累)', num: true,
+        render: r => {
+          const rr = r.raw_reliability || {};
+          const wf = rr.window_failed || 0;
+          const cf = rr.cumulative_failed;
+          return cf == null ? `${wf}` : `${wf} / ${cf}`;
+        } },
+    ], rows);
+  }
+
+  function fmtDim(dims, key, raw, rawKey) {
+    const v = dims && dims[key];
+    if (v == null) return '<span class="muted">N/A</span>';
+    const cls = v >= 85 ? 'good' : v >= 60 ? 'warn' : 'bad';
+    return `<span class="${cls}">${v.toFixed(0)}</span>`;
+  }
+
   // headers: [{key, label, num, render(row), width}]
   function table(headers, rows, opts) {
     if (!rows || !rows.length) return empty();
@@ -195,5 +344,6 @@ const Components = (() => {
   return {
     PAGES, LABELS, CLASS, esc, fmtNum, fmtBytes, fmtTime, fmtDur, fmtPct,
     stateBadge, progress, meter, empty, table, renderNav, init, toast, poll, valueCell, jobPicker,
+    healthPanel, healthNodeTable, healthGrade, healthGauge,
   };
 })();

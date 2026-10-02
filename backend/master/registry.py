@@ -83,7 +83,7 @@ class WorkerRegistry:
             worker.last_heartbeat_ms = now_ms()
             worker.cpu_percent = float(payload.get("cpu_percent", worker.cpu_percent))
             worker.mem_percent = float(payload.get("mem_percent", worker.mem_percent))
-            worker.load1 = float(payload.get("cpu_percent", worker.load1))
+            worker.load1 = float(payload.get("load1", worker.load1))
             worker.running_tasks = int(payload.get("running_tasks", worker.running_tasks))
             worker.queued_tasks = int(payload.get("queued_tasks", worker.queued_tasks))
             self._save(worker)
@@ -119,7 +119,7 @@ class WorkerRegistry:
 
     def reap(self) -> list[WorkerRecord]:
         """Mark timed-out workers dead and return the newly-dead list."""
-        timeout_ms = int(self.config.heartbeat_timeout_sec * 1000 * 60)
+        timeout_ms = int(self.config.heartbeat_timeout_sec * 1000)
         now = now_ms()
         newly_dead: list[WorkerRecord] = []
         with self._lock:
